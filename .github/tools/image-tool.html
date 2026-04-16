@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>nice!view Image Tool</title>
+  <style>
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+      --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
+      --accent: #e94560; --blue: #3b82f6; --green: #22c55e; --yellow: #eab308;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'SF Mono','Fira Code',monospace; padding: 18px; }
+
+    .header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+    .header h1 { color: var(--accent); font-size: 1.15rem; }
+    .header small { color: var(--muted); font-size: 0.75rem; }
+
+    /* ── Upload ── */
+    #upload-zone {
+      border: 2px dashed var(--border); border-radius: 10px;
+      padding: 50px 40px; text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    #upload-zone:hover, #upload-zone.over { border-color: var(--accent); background: rgba(233,69,96,0.04); }
+    #upload-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    #upload-zone strong { display: block; margin-bottom: 4px; }
+    #upload-zone p { font-size: 0.8rem; color: var(--muted); }
+    .upload-sep { margin: 14px auto; width: 60%; border: none; border-top: 1px solid var(--border); }
+
+    #editor { display: none; }
+
+    /* ── Toolbars ── */
+    .toolbar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+      display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end;
+      margin-bottom: 8px;
+    }
+    .tg { display: flex; flex-direction: column; gap: 4px; }
+    .tg > .lbl { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .tg > .row { display: flex; align-items: center; gap: 5px; }
+    .tsep { width: 1px; background: var(--border); align-self: stretch; margin: 0 2px; }
+
+    /* coord toolbar accent */
+    .toolbar.coord-bar { border-color: #1e3a5f; background: #172033; margin-bottom: 14px; }
+    .coord-bar .lbl { color: #60a5fa; }
+
+    select, input[type=number], input[type=text] {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 5px 8px; border-radius: 5px; font-family: inherit; font-size: 0.8rem;
+    }
+    input[type=number].coord { width: 62px; }
+    input[type=number].coord-sm { width: 52px; }
+    input[type=range] { width: 100px; accent-color: var(--accent); }
+    input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn {
+      background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+      padding: 5px 11px; border-radius: 5px; cursor: pointer;
+      font-family: inherit; font-size: 0.8rem; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn.accent:hover { opacity: 0.85; color: #fff; }
+    .btn.blue { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn.blue:hover { opacity: 0.85; color: #fff; }
+    .btn.green { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn.green:hover { opacity: 0.85; color: #fff; }
+
+    .chk { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; cursor: pointer; user-select: none; }
+    .chk input { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+    .chk.yellow input { accent-color: var(--yellow); }
+    .chk.blue input   { accent-color: var(--blue); }
+
+    /* coord label pair */
+    .clabel { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr 220px;
+      gap: 14px; margin-bottom: 14px; align-items: start;
+    }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px) { .layout { grid-template-columns: 1fr; } }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .panel-head {
+      padding: 7px 11px; font-size: 0.65rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .badge { background: var(--bg); padding: 1px 6px; border-radius: 3px; font-size: 0.65rem; color: var(--blue); }
+    .canvas-wrap { background: #000; display: flex; align-items: center; justify-content: center; min-height: 80px; overflow: hidden; }
+    canvas { display: block; max-width: 100%; }
+    #src-canvas { cursor: crosshair; }
+    #prev-canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .panel-foot { padding: 5px 11px; font-size: 0.68rem; color: var(--muted); border-top: 1px solid var(--border); min-height: 24px; }
+
+    /* ── Sprite panel ── */
+    .sprite-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; }
+    #sprite-list { flex: 1; overflow-y: auto; padding: 7px; display: flex; flex-direction: column; gap: 5px; min-height: 60px; max-height: 380px; }
+    .sp-empty { color: var(--muted); font-size: 0.75rem; text-align: center; padding: 20px 8px; }
+    .sp-item {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+      padding: 6px; cursor: pointer; display: flex; gap: 7px; align-items: flex-start;
+      transition: border-color 0.15s;
+    }
+    .sp-item:hover { border-color: var(--muted); }
+    .sp-item.active { border-color: var(--accent); }
+    .sp-thumb { flex-shrink: 0; width: 60px; height: 30px; background: #000; border-radius: 3px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .sp-thumb canvas { image-rendering: pixelated; max-width: 100%; max-height: 100%; }
+    .sp-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .sp-name { width: 100%; background: transparent; border: none; border-bottom: 1px solid transparent; color: var(--text); font-family: inherit; font-size: 0.78rem; padding: 1px 2px; }
+    .sp-name:focus { outline: none; border-bottom-color: var(--accent); }
+    .sp-coords { font-size: 0.62rem; color: var(--muted); }
+    .sp-sz input[type=number] { width: 42px; padding: 2px 4px; font-size: 0.65rem; }
+    .sp-del { flex-shrink: 0; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0 2px; line-height: 1; }
+    .sp-del:hover { color: var(--accent); }
+    .sprite-foot { padding: 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+
+    /* ── Export ── */
+    #export-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .exp-head { padding: 9px 13px; border-bottom: 1px solid var(--border); display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+    #out-code { width: 100%; height: 220px; background: var(--bg); border: none; color: #7dd3fc; font-family: inherit; font-size: 0.75rem; padding: 11px 13px; resize: vertical; display: block; }
+    #out-code:focus { outline: none; }
+
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+
+    /* grid preview indicator */
+    .grid-on-badge { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid rgba(234,179,8,0.3); padding: 1px 6px; border-radius: 3px; font-size: 0.62rem; display:none; }
+    .grid-on-badge.show { display: inline-block; }
+
+    /* pending meta indicator */
+    #pending-badge { display: none; background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; text-align: center; }
+    #pending-badge.show { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>nice!view Image Tool</h1>
+  <small>upload → crop/rotate → dither → C array</small>
+</div>
+
+<!-- Upload -->
+<div id="upload-zone">
+  <div class="icon">⬆</div>
+  <strong>Drop image here or click to browse</strong>
+  <p>PNG · JPG · BMP · WebP — any size, including sprite sheets</p>
+  <input type="file" id="file-input" accept="image/*" style="display:none">
+
+  <hr class="upload-sep">
+  <p style="font-size:0.75rem;color:var(--muted);margin-bottom:8px">Restore sprite names &amp; positions from a previously exported file</p>
+  <button class="btn" style="font-size:0.8rem" onclick="document.getElementById('c-file-input').click()">Load .c file</button>
+  <input type="file" id="c-file-input" accept=".c,text/plain" style="display:none">
+  <div id="pending-badge" style="margin-top:10px"></div>
+</div>
+
+<div id="editor">
+
+  <!-- ── Toolbar 1: Image settings ── -->
+  <div class="toolbar">
+    <div class="tg">
+      <span class="lbl">Transform</span>
+      <div class="row">
+        <button class="btn" onclick="rotate(-90)">↺ CCW</button>
+        <button class="btn" onclick="rotate(90)">CW ↻</button>
+        <button class="btn" onclick="flip('h')">↔ H</button>
+        <button class="btn" onclick="flip('v')">↕ V</button>
+        <span id="rot-label" style="font-size:0.72rem;color:var(--muted)">0°</span>
+      </div>
+    </div>
+
+    <div class="tsep"></div>
+
+    <div class="tg">
+      <span class="lbl">Dithering</span>
+      <select id="sel-algo">
+        <option value="none">None (hard cut)</option>
+        <option value="floyd" selected>Floyd-Steinberg</option>
+        <option value="atkinson">Atkinson</option>
+        <option value="bayer4">Bayer 4×4</option>
+        <option value="bayer8">Bayer 8×8</option>
+      </select>
+    </div>
+
+    <div class="tg">
+      <span class="lbl">Threshold — <span id="thr-val">128</span></span>
+      <input type="range" id="thr" min="0" max="255" value="128">
+    </div>
+
+    <div class="tg">
+      <span class="lbl">Options</span>
+      <label class="chk"><input type="checkbox" id="chk-invert"> Invert</label>
+    </div>
+
+    <div class="tsep"></div>
+
+    <div class="tg">
+      <span class="lbl">Default output (px)</span>
+      <div class="row">
+        <input type="number" id="def-w" value="140" min="8" max="800" style="width:60px">
+        <span class="clabel">×</span>
+        <input type="number" id="def-h" value="68"  min="8" max="600" style="width:60px">
+        <button class="btn" style="font-size:0.72rem;padding:4px 8px" onclick="setPreset(140,68)">nice!view</button>
+      </div>
+    </div>
+
+    <div class="tsep"></div>
+
+    <div class="tg">
+      <span class="lbl">&nbsp;</span>
+      <div class="row">
+        <button class="btn" onclick="clearStage()">Clear crop</button>
+        <button class="btn" onclick="newImage()">New image</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toolbar 2: Coordinates & Grid ── -->
+  <div class="toolbar coord-bar">
+
+    <div class="tg">
+      <span class="lbl">Selection origin &amp; size (source px)</span>
+      <div class="row">
+        <span class="clabel">X</span>
+        <input type="number" id="coord-x" class="coord" value="0" min="0">
+        <span class="clabel">Y</span>
+        <input type="number" id="coord-y" class="coord" value="0" min="0">
+        <span class="clabel" style="margin-left:6px">W</span>
+        <input type="number" id="coord-w" class="coord" value="140" min="1">
+        <span class="clabel">H</span>
+        <input type="number" id="coord-h" class="coord" value="68"  min="1">
+        <label class="chk blue" style="margin-left:6px">
+          <input type="checkbox" id="chk-lock" checked>
+          Lock W/H to output
+        </label>
+      </div>
+    </div>
+
+    <div class="tsep"></div>
+
+    <div class="tg">
+      <span class="lbl" style="color:var(--yellow)">Grid overlay</span>
+      <div class="row">
+        <label class="chk yellow"><input type="checkbox" id="chk-grid-show"> Show</label>
+        <label class="chk yellow" style="margin-left:4px"><input type="checkbox" id="chk-grid-snap"> Snap</label>
+        <span class="clabel" style="margin-left:6px">Cell</span>
+        <input type="number" id="grid-cw" class="coord-sm" value="140" min="1" title="Cell width">
+        <span class="clabel">×</span>
+        <input type="number" id="grid-ch" class="coord-sm" value="68"  min="1" title="Cell height">
+        <span class="clabel" style="margin-left:6px">Offset</span>
+        <input type="number" id="grid-ox" class="coord-sm" value="0" min="0" title="X offset">
+        <span class="clabel">,</span>
+        <input type="number" id="grid-oy" class="coord-sm" value="0" min="0" title="Y offset">
+        <button class="btn" style="font-size:0.72rem;padding:4px 8px;margin-left:4px" onclick="syncGridToOutput()">= output size</button>
+        <span class="grid-on-badge" id="grid-badge">GRID ON</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Main layout ── -->
+  <div class="layout">
+
+    <div class="panel">
+      <div class="panel-head">Source — drag to crop <span class="badge" id="src-badge">—</span></div>
+      <div class="canvas-wrap"><canvas id="src-canvas"></canvas></div>
+      <div class="panel-foot" id="src-foot">Draw a selection, then click Add sprite</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Dithered preview <span class="badge" id="prev-badge">—</span></div>
+      <div class="canvas-wrap"><canvas id="prev-canvas"></canvas></div>
+      <div class="panel-foot" id="prev-foot"></div>
+    </div>
+
+    <div class="sprite-panel">
+      <div class="panel-head">Sprites <span class="badge" id="sprite-count">0</span></div>
+      <div id="sprite-list"><p class="sp-empty">No sprites yet.<br>Draw a selection and click Add.</p></div>
+      <div class="sprite-foot">
+        <button class="btn accent" style="width:100%" onclick="addSprite()">+ Add selection as sprite</button>
+        <div style="display:flex;gap:5px">
+          <button class="btn blue"  style="flex:1;font-size:0.72rem" onclick="exportActive()">Export selected</button>
+          <button class="btn green" style="flex:1;font-size:0.72rem" onclick="exportAll()">Export all</button>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="btn" style="flex:1;font-size:0.72rem" onclick="copyCode()">Copy</button>
+          <button class="btn" style="flex:1;font-size:0.72rem" onclick="downloadCode()">Download .c</button>
+        </div>
+        <button class="btn" style="width:100%;font-size:0.72rem" onclick="document.getElementById('c-file-input').click()">Load .c (restore sprites)</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Export ── -->
+  <div id="export-section">
+    <div class="exp-head">
+      <strong>C Output</strong>
+      <button class="btn blue"  onclick="copyCode()">Copy</button>
+      <button class="btn green" onclick="downloadCode()">Download .c</button>
+      <span id="export-info" style="font-size:0.75rem;color:var(--muted);margin-left:4px"></span>
+    </div>
+    <textarea id="out-code" readonly spellcheck="false"></textarea>
+  </div>
+
+</div>
+
+<script>
+// ─── Sprite colours ───────────────────────────────────────────────────────────
+const COLOURS = ['#e94560','#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#84cc16'];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const S = {
+  img: null, imgW: 0, imgH: 0,
+  rotCanvas: null, rotW: 0, rotH: 0,
+  rotation: 0, flipH: false, flipV: false,
+  dispScale: 1,
+
+  stage: null,        // staging selection {x,y,w,h} in rotated-image coords
+  sprites: [],
+  activeIdx: -1,
+  drag: null,
+
+  lockSize: true,     // lock selection W/H to defW×defH
+  grid: { show: false, snap: false, cellW: 140, cellH: 68, offX: 0, offY: 0 },
+
+  algo: 'floyd', threshold: 128, invert: false,
+  defW: 140, defH: 68,
+
+  pendingMeta: null,  // sprite definitions loaded from a .c file, waiting for an image to be loaded
+};
+
+let uidSeq = 0;
+
+// ─── Upload ───────────────────────────────────────────────────────────────────
+const zone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+zone.addEventListener('click', e => { if (e.target.closest('button,input')) return; fileInput.click(); });
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('over'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+function loadFile(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    S.img = img; S.imgW = img.width; S.imgH = img.height;
+    S.rotation = 0; S.flipH = false; S.flipV = false;
+    S.stage = null; S.sprites = []; S.activeIdx = -1;
+    buildRotCanvas();
+    zone.style.display = 'none';
+    document.getElementById('editor').style.display = 'block';
+    initSrcCanvas();
+    renderPreview();
+
+    // Apply any sprite definitions that were loaded from a .c file before this image
+    if (S.pendingMeta) {
+      applyMetaSprites(S.pendingMeta.sprites);
+      S.pendingMeta = null;
+      updatePendingBadge();
+    } else {
+      renderSpriteList();
+      generateC();
+    }
+  };
+  img.src = url;
+}
+
+function newImage() {
+  zone.style.display = 'block';
+  document.getElementById('editor').style.display = 'none';
+  fileInput.value = '';
+}
+
+// ─── Transform ────────────────────────────────────────────────────────────────
+function rotate(deg) {
+  if (S.sprites.length > 0 && !confirm('Rotating will clear all sprites. Continue?')) return;
+  S.rotation = ((S.rotation + deg) % 360 + 360) % 360;
+  document.getElementById('rot-label').textContent = S.rotation + '°';
+  S.stage = null; S.sprites = []; S.activeIdx = -1;
+  buildRotCanvas(); initSrcCanvas(); renderPreview(); renderSpriteList(); generateC();
+}
+
+function flip(axis) {
+  if (S.sprites.length > 0 && !confirm('Flipping will clear all sprites. Continue?')) return;
+  if (axis === 'h') S.flipH = !S.flipH; else S.flipV = !S.flipV;
+  S.stage = null; S.sprites = []; S.activeIdx = -1;
+  buildRotCanvas(); initSrcCanvas(); renderPreview(); renderSpriteList(); generateC();
+}
+
+function buildRotCanvas() {
+  const tmp = document.createElement('canvas');
+  tmp.width = S.imgW; tmp.height = S.imgH;
+  const tctx = tmp.getContext('2d');
+  tctx.translate(S.flipH ? S.imgW : 0, S.flipV ? S.imgH : 0);
+  tctx.scale(S.flipH ? -1 : 1, S.flipV ? -1 : 1);
+  tctx.drawImage(S.img, 0, 0);
+
+  const rot = S.rotation;
+  const swapped = rot === 90 || rot === 270;
+  const dw = swapped ? S.imgH : S.imgW, dh = swapped ? S.imgW : S.imgH;
+  const c = document.createElement('canvas'); c.width = dw; c.height = dh;
+  const ctx = c.getContext('2d');
+  ctx.translate(dw/2, dh/2); ctx.rotate(rot * Math.PI / 180);
+  ctx.drawImage(tmp, -S.imgW/2, -S.imgH/2);
+  S.rotCanvas = c; S.rotW = dw; S.rotH = dh;
+}
+
+// ─── Source Canvas ────────────────────────────────────────────────────────────
+const srcC   = document.getElementById('src-canvas');
+const srcCtx = srcC.getContext('2d');
+const MAX_W = 560, MAX_H = 440;
+const HS = 8;
+
+function initSrcCanvas() {
+  const sc = Math.min(1, MAX_W / S.rotW, MAX_H / S.rotH);
+  S.dispScale = sc;
+  srcC.width  = Math.round(S.rotW * sc);
+  srcC.height = Math.round(S.rotH * sc);
+  document.getElementById('src-badge').textContent = `${S.rotW} × ${S.rotH}`;
+  drawSrc();
+}
+
+function drawSrc() {
+  const ctx = srcCtx, sc = S.dispScale;
+  ctx.clearRect(0, 0, srcC.width, srcC.height);
+  ctx.drawImage(S.rotCanvas, 0, 0, srcC.width, srcC.height);
+
+  // ── Grid overlay ──
+  if (S.grid.show) {
+    const { cellW, cellH, offX, offY } = S.grid;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(234,179,8,0.35)';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([]);
+
+    // Vertical lines
+    for (let x = offX % cellW === 0 ? offX : offX - (offX % cellW); x <= S.rotW; x += cellW) {
+      if (x < 0) continue;
+      ctx.beginPath(); ctx.moveTo(x*sc, 0); ctx.lineTo(x*sc, srcC.height); ctx.stroke();
+    }
+    // Horizontal lines
+    for (let y = offY % cellH === 0 ? offY : offY - (offY % cellH); y <= S.rotH; y += cellH) {
+      if (y < 0) continue;
+      ctx.beginPath(); ctx.moveTo(0, y*sc); ctx.lineTo(srcC.width, y*sc); ctx.stroke();
+    }
+
+    // Origin / offset marker
+    if (offX > 0 || offY > 0) {
+      ctx.strokeStyle = 'rgba(234,179,8,0.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(offX*sc, 0); ctx.lineTo(offX*sc, srcC.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, offY*sc); ctx.lineTo(srcC.width, offY*sc); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── Non-active sprites ──
+  for (let i = 0; i < S.sprites.length; i++) {
+    if (i === S.activeIdx || !S.sprites[i].sel) continue;
+    const sp = S.sprites[i];
+    const { x, y, w, h } = toCanvas(sp.sel, sc);
+    ctx.save();
+    ctx.strokeStyle = sp.colour + 'cc'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+    ctx.strokeRect(x+0.5, y+0.5, w, h);
+    ctx.fillStyle = sp.colour + 'cc'; ctx.font = '9px monospace';
+    ctx.fillText(sp.name, x+3, y+11);
+    ctx.restore();
+  }
+
+  // ── Active sprite ──
+  if (S.activeIdx >= 0 && S.sprites[S.activeIdx].sel)
+    drawSelBox(S.sprites[S.activeIdx].sel, sc, S.sprites[S.activeIdx].colour, true, false);
+
+  // ── Staging selection ──
+  if (S.stage && (S.activeIdx < 0 || S.drag?.type === 'new'))
+    drawSelBox(S.stage, sc, '#ffffff', false, true);
+
+  // ── Cursor coords ──
+  const sel = activeSel();
+  if (sel) {
+    document.getElementById('src-foot').textContent =
+      `Crop: ${Math.round(sel.w)} × ${Math.round(sel.h)}  at  (${Math.round(sel.x)}, ${Math.round(sel.y)})` +
+      (S.grid.snap ? '  [snap]' : '');
+  } else {
+    document.getElementById('src-foot').textContent = S.grid.show
+      ? `Grid: ${S.grid.cellW}×${S.grid.cellH} offset (${S.grid.offX},${S.grid.offY}) — draw a selection`
+      : 'Draw a selection, then click Add sprite';
+  }
+}
+
+function drawSelBox(sel, sc, colour, handles, dashed) {
+  const ctx = srcCtx;
+  const { x, y, w, h } = toCanvas(sel, sc);
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, srcC.width, y);
+  ctx.fillRect(0, y, x, h);
+  ctx.fillRect(x+w, y, srcC.width-x-w, h);
+  ctx.fillRect(0, y+h, srcC.width, srcC.height-y-h);
+
+  ctx.strokeStyle = colour; ctx.lineWidth = 1.5;
+  ctx.setLineDash(dashed ? [4,3] : []);
+  ctx.strokeRect(x+0.5, y+0.5, w, h);
+  ctx.setLineDash([]);
+
+  if (handles) {
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = colour; ctx.lineWidth = 1;
+    for (const [hx, hy] of handlePts(x, y, w, h)) {
+      ctx.fillRect(hx-HS/2, hy-HS/2, HS, HS);
+      ctx.strokeRect(hx-HS/2, hy-HS/2, HS, HS);
+    }
+  }
+  ctx.restore();
+}
+
+function toCanvas(sel, sc) { return { x: sel.x*sc, y: sel.y*sc, w: sel.w*sc, h: sel.h*sc }; }
+
+const HN = ['nw','n','ne','w','e','sw','s','se'];
+function handlePts(x, y, w, h) {
+  const cx=x+w/2, cy=y+h/2;
+  return [[x,y],[cx,y],[x+w,y],[x,cy],[x+w,cy],[x,y+h],[cx,y+h],[x+w,y+h]];
+}
+
+function hitHandle(sel, mx, my, sc) {
+  const { x, y, w, h } = toCanvas(sel, sc);
+  const pts = handlePts(x, y, w, h);
+  for (let i=0; i<pts.length; i++)
+    if (Math.abs(mx-pts[i][0])<=HS && Math.abs(my-pts[i][1])<=HS) return HN[i];
+  return null;
+}
+
+function insideSel(sel, mx, my, sc) {
+  const { x, y, w, h } = toCanvas(sel, sc);
+  return mx>=x && mx<=x+w && my>=y && my<=y+h;
+}
+
+function canvasXY(e) {
+  const r = srcC.getBoundingClientRect();
+  return [(e.clientX-r.left)*(srcC.width/r.width), (e.clientY-r.top)*(srcC.height/r.height)];
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function toImg(c) { return c / S.dispScale; }
+
+// Snap a point to the nearest grid intersection
+function snapGrid(ix, iy) {
+  if (!S.grid.snap) return [ix, iy];
+  const { cellW, cellH, offX, offY } = S.grid;
+  const sx = Math.round((ix - offX) / cellW) * cellW + offX;
+  const sy = Math.round((iy - offY) / cellH) * cellH + offY;
+  return [clamp(sx, 0, S.rotW), clamp(sy, 0, S.rotH)];
+}
+
+function activeSel() {
+  if (S.activeIdx >= 0 && S.sprites[S.activeIdx].sel) return S.sprites[S.activeIdx].sel;
+  return S.stage;
+}
+
+// ── Coord input sync ──────────────────────────────────────────────────────────
+function updateCoordInputs(sel) {
+  if (!sel) return;
+  document.getElementById('coord-x').value = Math.round(sel.x);
+  document.getElementById('coord-y').value = Math.round(sel.y);
+  document.getElementById('coord-w').value = Math.round(sel.w);
+  document.getElementById('coord-h').value = Math.round(sel.h);
+}
+
+function applyCoordInputs() {
+  const x = parseInt(document.getElementById('coord-x').value) || 0;
+  const y = parseInt(document.getElementById('coord-y').value) || 0;
+  const w = S.lockSize ? S.defW : (parseInt(document.getElementById('coord-w').value) || S.defW);
+  const h = S.lockSize ? S.defH : (parseInt(document.getElementById('coord-h').value) || S.defH);
+  const sel = {
+    x: clamp(x, 0, Math.max(0, S.rotW - 1)),
+    y: clamp(y, 0, Math.max(0, S.rotH - 1)),
+    w: clamp(w, 1, S.rotW),
+    h: clamp(h, 1, S.rotH),
+  };
+  if (S.activeIdx >= 0) {
+    S.sprites[S.activeIdx].sel = sel; markDirty(S.activeIdx);
+  } else {
+    S.stage = sel;
+  }
+  drawSrc(); schedPrev();
+}
+
+function setCoordLock(locked) {
+  S.lockSize = locked;
+  const wEl = document.getElementById('coord-w');
+  const hEl = document.getElementById('coord-h');
+  wEl.disabled = locked; hEl.disabled = locked;
+  if (locked) { wEl.value = S.defW; hEl.value = S.defH; }
+}
+
+// ─── Mouse drag ───────────────────────────────────────────────────────────────
+srcC.addEventListener('mousedown', e => {
+  const [mx, my] = canvasXY(e);
+  const sc = S.dispScale;
+
+  // 1. Active sprite handles / body
+  if (S.activeIdx >= 0) {
+    const sp = S.sprites[S.activeIdx];
+    if (sp.sel) {
+      const h = hitHandle(sp.sel, mx, my, sc);
+      if (h) { S.drag = { type:'resize', handle:h, mx, my, orig:{...sp.sel} }; return; }
+      if (insideSel(sp.sel, mx, my, sc)) { S.drag = { type:'move', mx, my, orig:{...sp.sel} }; return; }
+    }
+  }
+
+  // 2. Click inside another sprite → activate it
+  for (let i=0; i<S.sprites.length; i++) {
+    if (i===S.activeIdx) continue;
+    if (S.sprites[i].sel && insideSel(S.sprites[i].sel, mx, my, sc)) {
+      selectSprite(i); return;
+    }
+  }
+
+  // 3. Start new staging selection
+  S.activeIdx = -1;
+  let [ix, iy] = [clamp(toImg(mx),0,S.rotW), clamp(toImg(my),0,S.rotH)];
+  [ix, iy] = snapGrid(ix, iy);
+  const w = S.lockSize || S.grid.snap ? (S.grid.snap ? S.grid.cellW : S.defW) : 0;
+  const h = S.lockSize || S.grid.snap ? (S.grid.snap ? S.grid.cellH : S.defH) : 0;
+  S.stage = { x:ix, y:iy, w, h };
+  S.drag = { type:'new', startX:ix, startY:iy };
+  renderSpriteList();
+});
+
+window.addEventListener('mousemove', e => {
+  if (!S.drag) return;
+  const [mx, my] = canvasXY(e);
+  const sc = S.dispScale;
+  const d = S.drag;
+
+  if (d.type === 'new') {
+    let [ix, iy] = [clamp(toImg(mx),0,S.rotW), clamp(toImg(my),0,S.rotH)];
+
+    if (S.grid.snap) {
+      // Snap top-left to grid, fixed cell size
+      [ix, iy] = snapGrid(ix, iy);
+      S.stage = { x:ix, y:iy, w:S.grid.cellW, h:S.grid.cellH };
+    } else if (S.lockSize) {
+      // Fixed output size, move top-left freely
+      S.stage = { x:clamp(ix,0,S.rotW-S.defW), y:clamp(iy,0,S.rotH-S.defH), w:S.defW, h:S.defH };
+    } else {
+      // Free draw
+      const [sx, sy] = snapGrid(d.startX, d.startY);
+      const [ex, ey] = snapGrid(ix, iy);
+      S.stage = { x:Math.min(sx,ex), y:Math.min(sy,ey), w:Math.abs(ex-sx), h:Math.abs(ey-sy) };
+    }
+    updateCoordInputs(S.stage);
+
+  } else if (d.type === 'move' && S.activeIdx >= 0) {
+    const dx = toImg(mx-d.mx), dy = toImg(my-d.my);
+    let nx = clamp(d.orig.x+dx, 0, S.rotW-d.orig.w);
+    let ny = clamp(d.orig.y+dy, 0, S.rotH-d.orig.h);
+    if (S.grid.snap) { [nx, ny] = snapGrid(nx, ny); }
+    S.sprites[S.activeIdx].sel = { x:nx, y:ny, w:d.orig.w, h:d.orig.h };
+    markDirty(S.activeIdx);
+    updateCoordInputs(S.sprites[S.activeIdx].sel);
+
+  } else if (d.type === 'resize' && S.activeIdx >= 0) {
+    let { x, y, w, h } = d.orig;
+    const r=x+w, b=y+h;
+    let ix=clamp(toImg(mx),0,S.rotW), iy=clamp(toImg(my),0,S.rotH);
+    if (S.grid.snap) [ix,iy] = snapGrid(ix,iy);
+    const hd = d.handle;
+    if (hd.includes('w')) { const nx=Math.min(ix,r-1); w=r-nx; x=nx; }
+    if (hd.includes('e')) { w=Math.max(1,ix-x); }
+    if (hd.includes('n')) { const ny=Math.min(iy,b-1); h=b-ny; y=ny; }
+    if (hd.includes('s')) { h=Math.max(1,iy-y); }
+    // If locked, keep W/H fixed
+    if (S.lockSize) { w=S.defW; h=S.defH; }
+    S.sprites[S.activeIdx].sel = { x, y, w, h };
+    markDirty(S.activeIdx);
+    updateCoordInputs(S.sprites[S.activeIdx].sel);
+  }
+
+  drawSrc(); schedPrev();
+});
+
+window.addEventListener('mouseup', () => {
+  if (!S.drag) return;
+  if (S.drag.type==='new' && S.stage && (S.stage.w<2 || S.stage.h<2)) {
+    if (!S.lockSize && !S.grid.snap) S.stage = null;
+  }
+  S.drag = null;
+  drawSrc(); renderPreview();
+  if (S.activeIdx >= 0) renderSpriteList();
+});
+
+// ─── Canvas mouse hover — show pixel coords in footer ─────────────────────────
+srcC.addEventListener('mousemove', e => {
+  if (S.drag) return;
+  const [mx, my] = canvasXY(e);
+  const ix = Math.round(toImg(mx)), iy = Math.round(toImg(my));
+  let label = `cursor: (${ix}, ${iy})`;
+  if (S.grid.show) {
+    const { cellW, cellH, offX, offY } = S.grid;
+    const col = Math.floor((ix - offX) / cellW);
+    const row = Math.floor((iy - offY) / cellH);
+    if (col >= 0 && row >= 0) label += `  ·  cell [${col}, ${row}]`;
+  }
+  document.getElementById('src-foot').textContent = label;
+});
+
+function clearStage() {
+  S.stage = null; S.activeIdx = -1;
+  drawSrc(); renderPreview(); renderSpriteList();
+}
+
+// ─── Dithering algorithms ─────────────────────────────────────────────────────
+function toGray(data, n) {
+  const g = new Float32Array(n);
+  for (let i=0;i<n;i++) g[i]=0.299*data[i*4]+0.587*data[i*4+1]+0.114*data[i*4+2];
+  return g;
+}
+
+function hardCut(g,W,H,thr,inv) {
+  const out=new Uint8Array(W*H);
+  for(let i=0;i<g.length;i++){let b=g[i]>=thr?1:0;if(inv)b=1-b;out[i]=b;}return out;
+}
+
+function floydSteinberg(g,W,H,thr,inv) {
+  const d=new Float32Array(g),out=new Uint8Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x,old=Math.max(0,Math.min(255,d[i])),nv=old<thr?0:255;
+    let b=nv===255?1:0;if(inv)b=1-b;out[i]=b;
+    const err=old-nv;
+    if(x+1<W)d[i+1]+=err*7/16;
+    if(y+1<H){if(x>0)d[i+W-1]+=err*3/16;d[i+W]+=err*5/16;if(x+1<W)d[i+W+1]+=err*1/16;}
+  }return out;
+}
+
+function atkinson(g,W,H,thr,inv) {
+  const d=new Float32Array(g),out=new Uint8Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x,old=Math.max(0,Math.min(255,d[i])),nv=old<thr?0:255;
+    let b=nv===255?1:0;if(inv)b=1-b;out[i]=b;
+    const err=(old-nv)/8;
+    if(x+1<W)d[i+1]+=err;if(x+2<W)d[i+2]+=err;
+    if(y+1<H){if(x>0)d[i+W-1]+=err;d[i+W]+=err;if(x+1<W)d[i+W+1]+=err;}
+    if(y+2<H)d[i+W*2]+=err;
+  }return out;
+}
+
+const B4=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+const B8=[[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],[3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]];
+
+function bayerDither(g,W,H,mat,thr,inv) {
+  const n=mat.length,n2=n*n,bias=128-thr,out=new Uint8Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x,bt=(mat[y%n][x%n]+0.5)/n2*255,v=Math.max(0,Math.min(255,g[i]+bias));
+    let b=v>bt?1:0;if(inv)b=1-b;out[i]=b;
+  }return out;
+}
+
+function runDither(g,W,H) {
+  const thr=S.threshold,inv=S.invert;
+  switch(S.algo){
+    case 'none':     return hardCut(g,W,H,thr,inv);
+    case 'floyd':    return floydSteinberg(g,W,H,thr,inv);
+    case 'atkinson': return atkinson(g,W,H,thr,inv);
+    case 'bayer4':   return bayerDither(g,W,H,B4,thr,inv);
+    case 'bayer8':   return bayerDither(g,W,H,B8,thr,inv);
+    default:         return floydSteinberg(g,W,H,thr,inv);
+  }
+}
+
+function computePixels(sp) {
+  if (!sp.dirty && sp.pixels) return sp.pixels;
+  if (!sp.sel || sp.sel.w<1 || sp.sel.h<1){sp.pixels=null;sp.dirty=false;return null;}
+  const W=sp.targetW,H=sp.targetH;
+  const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+  const ctx=tmp.getContext('2d');
+  ctx.drawImage(S.rotCanvas,sp.sel.x,sp.sel.y,sp.sel.w,sp.sel.h,0,0,W,H);
+  const id=ctx.getImageData(0,0,W,H);
+  sp.pixels=runDither(toGray(id.data,W*H),W,H);sp.dirty=false;
+  return sp.pixels;
+}
+
+function markDirty(idx){if(S.sprites[idx])S.sprites[idx].dirty=true;}
+function markAllDirty(){S.sprites.forEach(sp=>sp.dirty=true);}
+
+// ─── Preview ──────────────────────────────────────────────────────────────────
+const prevC   = document.getElementById('prev-canvas');
+const prevCtx = prevC.getContext('2d');
+
+function renderPreview() {
+  let sel, W, H;
+  if (S.activeIdx>=0 && S.sprites[S.activeIdx].sel) {
+    const sp=S.sprites[S.activeIdx]; sel=sp.sel; W=sp.targetW; H=sp.targetH;
+  } else if (S.stage && S.stage.w>0 && S.stage.h>0) {
+    sel=S.stage; W=S.defW; H=S.defH;
+  } else {
+    prevC.width=1;prevC.height=1;
+    document.getElementById('prev-badge').textContent='—';
+    document.getElementById('prev-foot').textContent='';
+    return;
+  }
+
+  const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+  tmp.getContext('2d').drawImage(S.rotCanvas,sel.x,sel.y,sel.w,sel.h,0,0,W,H);
+  const id=tmp.getContext('2d').getImageData(0,0,W,H);
+  const pixels=runDither(toGray(id.data,W*H),W,H);
+
+  const zoom=Math.max(1,Math.min(5,Math.floor(420/Math.max(W,H*1.4))));
+  prevC.width=W*zoom;prevC.height=H*zoom;
+  const out=prevCtx.createImageData(prevC.width,prevC.height);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const c=pixels[y*W+x]===1?255:0;
+    for(let dy=0;dy<zoom;dy++)for(let dx=0;dx<zoom;dx++){
+      const p=((y*zoom+dy)*prevC.width+(x*zoom+dx))*4;
+      out.data[p]=out.data[p+1]=out.data[p+2]=c;out.data[p+3]=255;
+    }
+  }
+  prevCtx.putImageData(out,0,0);
+
+  const names={none:'Hard cut',floyd:'Floyd-Steinberg',atkinson:'Atkinson',bayer4:'Bayer 4×4',bayer8:'Bayer 8×8'};
+  document.getElementById('prev-badge').textContent=`${W} × ${H}`;
+  document.getElementById('prev-foot').textContent=`${names[S.algo]} · thr ${S.threshold} · ${zoom}× zoom`;
+}
+
+let prevTimer=null;
+function schedPrev(){clearTimeout(prevTimer);prevTimer=setTimeout(()=>{renderPreview();},80);}
+
+// ─── Sprites ──────────────────────────────────────────────────────────────────
+function addSprite() {
+  const sel = S.stage || (S.activeIdx>=0 ? S.sprites[S.activeIdx].sel : null);
+  if (!sel||sel.w<2||sel.h<2){alert('Draw a selection first.');return;}
+  const id='sp'+(++uidSeq);
+  const colour=COLOURS[S.sprites.length%COLOURS.length];
+  S.sprites.push({id,name:'sprite_'+uidSeq,sel:{...sel},targetW:S.defW,targetH:S.defH,colour,pixels:null,dirty:true});
+  S.stage=null;
+  S.activeIdx=S.sprites.length-1;
+  renderSpriteList();drawSrc();renderPreview();generateC();
+}
+
+function removeSprite(idx) {
+  S.sprites.splice(idx,1);
+  if(S.activeIdx>=S.sprites.length)S.activeIdx=S.sprites.length-1;
+  renderSpriteList();drawSrc();renderPreview();generateC();
+}
+
+function selectSprite(idx) {
+  S.activeIdx=idx;
+  renderSpriteList();drawSrc();renderPreview();
+  updateCoordInputs(S.sprites[idx].sel);
+  generateC();
+}
+
+function renderThumb(sp) {
+  const pixels=computePixels(sp);
+  if(!pixels)return null;
+  const W=sp.targetW,H=sp.targetH;
+  const tc=document.createElement('canvas');tc.width=W;tc.height=H;
+  const id=tc.getContext('2d').createImageData(W,H);
+  for(let i=0;i<W*H;i++){const c=pixels[i]===1?255:0;id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=c;id.data[i*4+3]=255;}
+  tc.getContext('2d').putImageData(id,0,0);
+  return tc;
+}
+
+function renderSpriteList() {
+  const list=document.getElementById('sprite-list');
+  document.getElementById('sprite-count').textContent=S.sprites.length;
+  if(S.sprites.length===0){list.innerHTML='<p class="sp-empty">No sprites yet.<br>Draw a selection and click Add.</p>';return;}
+  list.innerHTML='';
+  S.sprites.forEach((sp,idx)=>{
+    const item=document.createElement('div');
+    item.className='sp-item'+(idx===S.activeIdx?' active':'');
+
+    // Thumb
+    const tw=document.createElement('div');tw.className='sp-thumb';
+    const thumb=renderThumb(sp);
+    if(thumb){thumb.style.cssText='max-width:60px;max-height:30px;';tw.appendChild(thumb);}
+    item.appendChild(tw);
+
+    // Meta
+    const meta=document.createElement('div');meta.className='sp-meta';
+
+    const nameRow=document.createElement('div');nameRow.style.cssText='display:flex;align-items:center;gap:4px';
+    const dot=document.createElement('span');dot.className='dot';dot.style.background=sp.colour;
+    const nameIn=document.createElement('input');nameIn.className='sp-name';nameIn.value=sp.name;
+    nameIn.addEventListener('click',ev=>ev.stopPropagation());
+    nameIn.addEventListener('change',ev=>{sp.name=ev.target.value;generateC();});
+    nameRow.appendChild(dot);nameRow.appendChild(nameIn);
+    meta.appendChild(nameRow);
+
+    // Coords display
+    if(sp.sel){
+      const coordsEl=document.createElement('div');coordsEl.className='sp-coords';
+      coordsEl.textContent=`src (${Math.round(sp.sel.x)}, ${Math.round(sp.sel.y)}) ${Math.round(sp.sel.w)}×${Math.round(sp.sel.h)}`;
+      meta.appendChild(coordsEl);
+    }
+
+    // Output size row
+    const szRow=document.createElement('div');szRow.className='sp-sz';szRow.style.cssText='display:flex;align-items:center;gap:3px;font-size:0.65rem;color:var(--muted)';
+    szRow.appendChild(document.createTextNode('out: '));
+    const wIn=document.createElement('input');wIn.type='number';wIn.value=sp.targetW;wIn.min=8;wIn.max=800;
+    wIn.style.cssText='width:42px;padding:2px 4px;font-size:0.65rem';
+    const xSp=document.createTextNode(' × ');
+    const hIn=document.createElement('input');hIn.type='number';hIn.value=sp.targetH;hIn.min=8;hIn.max=600;
+    hIn.style.cssText='width:42px;padding:2px 4px;font-size:0.65rem';
+    [wIn,hIn].forEach(el=>el.addEventListener('click',ev=>ev.stopPropagation()));
+    wIn.addEventListener('change',()=>{sp.targetW=Math.max(8,parseInt(wIn.value)||S.defW);markDirty(idx);renderSpriteList();renderPreview();generateC();});
+    hIn.addEventListener('change',()=>{sp.targetH=Math.max(8,parseInt(hIn.value)||S.defH);markDirty(idx);renderSpriteList();renderPreview();generateC();});
+    szRow.appendChild(wIn);szRow.appendChild(xSp);szRow.appendChild(hIn);
+    meta.appendChild(szRow);
+
+    item.appendChild(meta);
+
+    const del=document.createElement('button');del.className='sp-del';del.textContent='×';
+    del.addEventListener('click',ev=>{ev.stopPropagation();removeSprite(idx);});
+    item.appendChild(del);
+
+    item.addEventListener('click',()=>selectSprite(idx));
+    list.appendChild(item);
+  });
+}
+
+// ─── C Code generation ────────────────────────────────────────────────────────
+
+// Embed sprite metadata as a machine-readable comment so exported .c files
+// can be loaded back into the tool to restore all sprite names and positions.
+// Format: /* @nice-view-image-tool {"version":1,"sprites":[...]} */
+function generateMetaComment(sprites) {
+  const meta = {
+    version: 1,
+    sprites: sprites.map(sp => ({
+      name: sp.name,
+      sel: [Math.round(sp.sel.x), Math.round(sp.sel.y), Math.round(sp.sel.w), Math.round(sp.sel.h)],
+      out: [sp.targetW, sp.targetH],
+    })),
+  };
+  return `/* @nice-view-image-tool ${JSON.stringify(meta)} */`;
+}
+
+function pixelsToC(name, pixels, W, H) {
+  const NAME=name.toUpperCase();
+  const bpr=Math.ceil(W/8);
+  const bytes=[];
+  for(let y=0;y<H;y++)for(let bi=0;bi<bpr;bi++){
+    let byte=0;
+    for(let bit=0;bit<8;bit++){const x=bi*8+bit;if(x<W&&pixels[y*W+x]===1)byte|=(1<<(7-bit));}
+    bytes.push(byte);
+  }
+  const dataSize=8+bytes.length;
+  const hex=bytes.map(b=>`0x${b.toString(16).padStart(2,'0')}`);
+  const lines=[];
+  for(let i=0;i<hex.length;i+=15){
+    const last=i+15>=hex.length;
+    lines.push('        '+hex.slice(i,i+15).join(', ')+(last?'':','));
+  }
+  return `#ifndef LV_ATTRIBUTE_IMG_${NAME}
+#define LV_ATTRIBUTE_IMG_${NAME}
+#endif
+
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_${NAME} uint8_t
+    ${name}_map[] = {
+#if CONFIG_NICE_VIEW_WIDGET_INVERTED
+        0xff, 0xff, 0xff, 0xff, /*Color of index 0*/
+        0x00, 0x00, 0x00, 0xff, /*Color of index 1*/
+#else
+        0x00, 0x00, 0x00, 0xff, /*Color of index 0*/
+        0xff, 0xff, 0xff, 0xff, /*Color of index 1*/
+#endif
+
+${lines.join('\n')}
+};
+
+const lv_img_dsc_t ${name} = {
+    .header.cf = LV_IMG_CF_INDEXED_1BIT,
+    .header.always_zero = 0,
+    .header.reserved = 0,
+    .header.w = ${W},
+    .header.h = ${H},
+    .data_size = ${dataSize},
+    .data = ${name}_map,
+};`;
+}
+
+function generateC() {
+  if(S.sprites.length===0){document.getElementById('out-code').value='/* Add sprites to export C code */';document.getElementById('export-info').textContent='';return;}
+  exportAll(false);
+}
+
+function exportActive() {
+  if(S.activeIdx<0){alert('Select a sprite first.');return;}
+  const sp=S.sprites[S.activeIdx];
+  const pixels=computePixels(sp);
+  if(!pixels){alert('Sprite has no valid selection.');return;}
+  const name=sp.name.replace(/[^a-zA-Z0-9_]/g,'_')||'sprite';
+  const meta=generateMetaComment([sp]);
+  const code=`${meta}\n\n/*\n * Auto-generated by nice!view Image Tool\n * ${name}  ${sp.targetW}×${sp.targetH}  src(${Math.round(sp.sel.x)},${Math.round(sp.sel.y)})\n */\n\n#include <lvgl.h>\n\n`+pixelsToC(name,pixels,sp.targetW,sp.targetH);
+  document.getElementById('out-code').value=code;
+  document.getElementById('export-info').textContent=`→ ${name}`;
+}
+
+function exportAll(write=true) {
+  const parts=[];
+  let count=0;
+  const validSprites=[];
+  for(const sp of S.sprites){
+    const pixels=computePixels(sp);if(!pixels)continue;
+    validSprites.push(sp);
+    const name=sp.name.replace(/[^a-zA-Z0-9_]/g,'_')||'sprite';
+    parts.push(`\n\n/* ── ${name}  ${sp.targetW}×${sp.targetH}  src(${Math.round(sp.sel.x)},${Math.round(sp.sel.y)}) ── */\n`+pixelsToC(name,pixels,sp.targetW,sp.targetH));
+    count++;
+  }
+  const header=`${generateMetaComment(validSprites)}\n\n/*\n * Auto-generated by nice!view Image Tool\n * ${count} sprite(s)\n */\n\n#include <lvgl.h>`;
+  const code=header+parts.join('');
+  document.getElementById('out-code').value=code;
+  document.getElementById('export-info').textContent=`${count} sprite(s)`;
+  return code;
+}
+
+// ─── Load .c file — restore sprite definitions ────────────────────────────────
+
+function loadCFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    // Extract the metadata JSON from the special comment
+    const match = text.match(/\/\* @nice-view-image-tool ({.*?}) \*\//);
+    if (!match) {
+      alert('No image-tool metadata found in this .c file.\nOnly files exported by this tool can be loaded back.');
+      return;
+    }
+    let meta;
+    try { meta = JSON.parse(match[1]); } catch { alert('Failed to parse sprite metadata.'); return; }
+    if (!meta.sprites || !meta.sprites.length) { alert('No sprite definitions found in metadata.'); return; }
+
+    if (S.img) {
+      // Image already loaded — create sprites immediately
+      if (S.sprites.length > 0 && !confirm(`Replace ${S.sprites.length} existing sprite(s) with ${meta.sprites.length} from file?`)) return;
+      applyMetaSprites(meta.sprites);
+    } else {
+      // No image yet — hold onto the definitions and apply when one is loaded
+      S.pendingMeta = meta;
+      updatePendingBadge();
+      alert(`Loaded ${meta.sprites.length} sprite definition(s).\nNow drop or open an image to apply them.`);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Reconstruct sprite list from saved metadata (names, source selections, output sizes).
+// Pixel data is re-computed from the current image once visible.
+function applyMetaSprites(sprites) {
+  S.sprites = [];
+  S.activeIdx = -1;
+  S.stage = null;
+  for (const sp of sprites) {
+    const id = 'sp' + (++uidSeq);
+    const colour = COLOURS[S.sprites.length % COLOURS.length];
+    const [sx, sy, sw, sh] = sp.sel;
+    S.sprites.push({
+      id,
+      name: sp.name,
+      sel: { x: sx, y: sy, w: sw, h: sh },
+      targetW: sp.out[0],
+      targetH: sp.out[1],
+      colour,
+      pixels: null,
+      dirty: true,
+    });
+  }
+  if (S.sprites.length > 0) S.activeIdx = 0;
+  renderSpriteList(); drawSrc(); renderPreview(); generateC();
+}
+
+function updatePendingBadge() {
+  const badge = document.getElementById('pending-badge');
+  if (S.pendingMeta) {
+    badge.textContent = `${S.pendingMeta.sprites.length} sprite definition(s) loaded — open an image to apply`;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+document.getElementById('c-file-input').addEventListener('change', function() {
+  if (this.files[0]) { loadCFile(this.files[0]); this.value = ''; }
+});
+
+// ─── Toolbar 1 controls ───────────────────────────────────────────────────────
+document.getElementById('sel-algo').addEventListener('change',e=>{S.algo=e.target.value;markAllDirty();renderPreview();renderSpriteList();generateC();});
+document.getElementById('thr').addEventListener('input',e=>{S.threshold=parseInt(e.target.value);document.getElementById('thr-val').textContent=S.threshold;markAllDirty();schedPrev();});
+document.getElementById('thr').addEventListener('change',()=>{renderSpriteList();generateC();});
+document.getElementById('chk-invert').addEventListener('change',e=>{S.invert=e.target.checked;markAllDirty();renderPreview();renderSpriteList();generateC();});
+document.getElementById('def-w').addEventListener('change',e=>{
+  S.defW=Math.max(8,parseInt(e.target.value)||140);
+  if(S.lockSize){document.getElementById('coord-w').value=S.defW;}
+  // sync grid cell if grid was matching output
+  document.getElementById('grid-cw').value=S.defW; S.grid.cellW=S.defW;
+});
+document.getElementById('def-h').addEventListener('change',e=>{
+  S.defH=Math.max(8,parseInt(e.target.value)||68);
+  if(S.lockSize){document.getElementById('coord-h').value=S.defH;}
+  document.getElementById('grid-ch').value=S.defH; S.grid.cellH=S.defH;
+});
+
+function setPreset(w,h){
+  document.getElementById('def-w').value=w;document.getElementById('def-h').value=h;
+  S.defW=w;S.defH=h;
+  if(S.lockSize){document.getElementById('coord-w').value=w;document.getElementById('coord-h').value=h;}
+}
+
+// ─── Toolbar 2: Coord inputs ──────────────────────────────────────────────────
+['coord-x','coord-y','coord-w','coord-h'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', applyCoordInputs);
+  document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') applyCoordInputs(); });
+});
+
+document.getElementById('chk-lock').addEventListener('change',e=>{
+  setCoordLock(e.target.checked);
+  applyCoordInputs();
+});
+setCoordLock(true); // init state
+
+// ─── Toolbar 2: Grid controls ─────────────────────────────────────────────────
+function updateGridBadge() {
+  const on = S.grid.show || S.grid.snap;
+  document.getElementById('grid-badge').classList.toggle('show', on);
+}
+
+document.getElementById('chk-grid-show').addEventListener('change',e=>{
+  S.grid.show=e.target.checked; updateGridBadge(); drawSrc();
+});
+document.getElementById('chk-grid-snap').addEventListener('change',e=>{
+  S.grid.snap=e.target.checked; updateGridBadge();
+});
+
+document.getElementById('grid-cw').addEventListener('change',e=>{S.grid.cellW=Math.max(1,parseInt(e.target.value)||140);drawSrc();});
+document.getElementById('grid-ch').addEventListener('change',e=>{S.grid.cellH=Math.max(1,parseInt(e.target.value)||68);drawSrc();});
+document.getElementById('grid-ox').addEventListener('change',e=>{S.grid.offX=Math.max(0,parseInt(e.target.value)||0);drawSrc();});
+document.getElementById('grid-oy').addEventListener('change',e=>{S.grid.offY=Math.max(0,parseInt(e.target.value)||0);drawSrc();});
+
+function syncGridToOutput() {
+  S.grid.cellW=S.defW; S.grid.cellH=S.defH;
+  document.getElementById('grid-cw').value=S.defW;
+  document.getElementById('grid-ch').value=S.defH;
+  drawSrc();
+}
+
+// ─── Copy / Download ──────────────────────────────────────────────────────────
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('out-code').value).then(()=>{
+    const btn=event.currentTarget,orig=btn.textContent;
+    btn.textContent='Copied!';setTimeout(()=>btn.textContent=orig,1500);
+  });
+}
+
+function downloadCode() {
+  const names=S.sprites.map(sp=>sp.name.replace(/[^a-zA-Z0-9_]/g,'_')).filter(Boolean);
+  const fname=names.length===1?names[0]:names.length>1?'sprites':'output';
+  const blob=new Blob([document.getElementById('out-code').value],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=fname+'.c';a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
