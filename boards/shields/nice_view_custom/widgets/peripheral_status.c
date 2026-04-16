@@ -23,8 +23,21 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
-LV_IMG_DECLARE(balloon);
-LV_IMG_DECLARE(mountain);
+LV_IMG_DECLARE(sprite_1);
+LV_IMG_DECLARE(sprite_2);
+LV_IMG_DECLARE(sprite_3);
+LV_IMG_DECLARE(sprite_4);
+LV_IMG_DECLARE(sprite_5);
+LV_IMG_DECLARE(sprite_6);
+LV_IMG_DECLARE(sprite_7);
+LV_IMG_DECLARE(sprite_8);
+LV_IMG_DECLARE(sprite_9);
+LV_IMG_DECLARE(sprite_10);
+
+static const lv_img_dsc_t *art_images[] = {
+    &sprite_1, &sprite_2, &sprite_3, &sprite_4, &sprite_5,
+    &sprite_6, &sprite_7, &sprite_8, &sprite_9, &sprite_10,
+};
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -115,8 +128,8 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     lv_obj_t *art = lv_img_create(widget->obj);
-    bool random = sys_rand32_get() & 1;
-    lv_img_set_src(art, random ? &balloon : &mountain);
+    uint32_t idx = sys_rand32_get() % ARRAY_SIZE(art_images);
+    lv_img_set_src(art, art_images[idx]);
     lv_obj_align(art, LV_ALIGN_TOP_LEFT, 0, 0);
 
     sys_slist_append(&widgets, &widget->node);
