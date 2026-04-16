@@ -23,20 +23,32 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
-LV_IMG_DECLARE(sprite_1);
-LV_IMG_DECLARE(sprite_2);
-LV_IMG_DECLARE(sprite_3);
-LV_IMG_DECLARE(sprite_4);
-LV_IMG_DECLARE(sprite_5);
-LV_IMG_DECLARE(sprite_6);
-LV_IMG_DECLARE(sprite_7);
-LV_IMG_DECLARE(sprite_8);
-LV_IMG_DECLARE(sprite_9);
-LV_IMG_DECLARE(sprite_10);
+LV_IMG_DECLARE(monkey_island);
+LV_IMG_DECLARE(day_of_the_tentacle);
+LV_IMG_DECLARE(doom_guy);
+LV_IMG_DECLARE(quake);
+LV_IMG_DECLARE(unreal);
+LV_IMG_DECLARE(doom_disk);
+LV_IMG_DECLARE(mortal_kombat);
+LV_IMG_DECLARE(lemmings);
+LV_IMG_DECLARE(d20);
+LV_IMG_DECLARE(one_ring);
+LV_IMG_DECLARE(t_fighter);
+LV_IMG_DECLARE(x_wing);
+LV_IMG_DECLARE(linux);
+LV_IMG_DECLARE(witcher);
+LV_IMG_DECLARE(stitch);
+LV_IMG_DECLARE(pika);
+LV_IMG_DECLARE(milky_way);
+LV_IMG_DECLARE(commet);
+LV_IMG_DECLARE(apolo);
+LV_IMG_DECLARE(black_hole);
 
 static const lv_img_dsc_t *art_images[] = {
-    &sprite_1, &sprite_2, &sprite_3, &sprite_4, &sprite_5,
-    &sprite_6, &sprite_7, &sprite_8, &sprite_9, &sprite_10,
+    &monkey_island, &day_of_the_tentacle, &doom_guy, &quake, &unreal,
+    &doom_disk, &mortal_kombat, &lemmings, &d20, &one_ring,
+    &t_fighter, &x_wing, &linux, &witcher, &stitch,
+    &pika, &milky_way, &commet, &apolo, &black_hole,
 };
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
