@@ -23,6 +23,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "peripheral_status.h"
 
+LV_IMG_DECLARE(bt18);
 LV_IMG_DECLARE(monkey_island);
 LV_IMG_DECLARE(day_of_the_tentacle);
 LV_IMG_DECLARE(doom_guy);
@@ -72,8 +73,13 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     draw_battery(canvas, state);
 
     // Draw output status
-    lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc,
-                        state->connected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE);
+    if (state->connected) {
+        lv_draw_img_dsc_t img_dsc;
+        lv_draw_img_dsc_init(&img_dsc);
+        lv_canvas_draw_img(canvas, CANVAS_SIZE - 13, 0, &bt18, &img_dsc);
+    } else {
+        lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, LV_SYMBOL_CLOSE);
+    }
 
     // Rotate canvas
     rotate_canvas(canvas, cbuf);

@@ -26,6 +26,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/keymap.h>
 #include <zmk/wpm.h>
 
+LV_IMG_DECLARE(bt18);
+
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct output_status_state {
@@ -68,6 +70,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
 
     // Draw output status
     char output_text[10] = {};
+    bool draw_bt_icon = false;
 
     switch (state->selected_endpoint.transport) {
     case ZMK_TRANSPORT_USB:
@@ -76,7 +79,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     case ZMK_TRANSPORT_BLE:
         if (state->active_profile_bonded) {
             if (state->active_profile_connected) {
-                strcat(output_text, LV_SYMBOL_WIFI);
+                draw_bt_icon = true;
             } else {
                 strcat(output_text, LV_SYMBOL_CLOSE);
             }
@@ -87,6 +90,12 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     }
 
     lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, output_text);
+
+    if (draw_bt_icon) {
+        lv_draw_img_dsc_t img_dsc;
+        lv_draw_img_dsc_init(&img_dsc);
+        lv_canvas_draw_img(canvas, CANVAS_SIZE - 13, 0, &bt18, &img_dsc);
+    }
 
     // Draw WPM
     lv_canvas_draw_rect(canvas, 0, 21, 68, 42, &rect_white_dsc);
