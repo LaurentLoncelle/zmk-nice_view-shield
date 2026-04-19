@@ -148,7 +148,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
-    lv_canvas_draw_img(canvas, 0, (63 - 58) / 2, &altrune, &img_dsc);
+    lv_canvas_draw_img(canvas, 0, 0, &altrune, &img_dsc);
 
     rotate_canvas(canvas, cbuf);
 }
@@ -168,9 +168,9 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     if (state->layer_label == NULL || strlen(state->layer_label) == 0) {
         char text[10] = {};
         sprintf(text, "LAYER %i", state->layer_index);
-        lv_canvas_draw_text(canvas, 0, 2, 68, &label_dsc, text);
+        lv_canvas_draw_text(canvas, 0, 0, 68, &label_dsc, text);
     } else {
-        lv_canvas_draw_text(canvas, 0, 2, 68, &label_dsc, state->layer_label);
+        lv_canvas_draw_text(canvas, 0, 0, 68, &label_dsc, state->layer_label);
     }
 
     // Draw profiles row below layer
