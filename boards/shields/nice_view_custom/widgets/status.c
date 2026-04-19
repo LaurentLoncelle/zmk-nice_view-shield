@@ -27,6 +27,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/wpm.h>
 
 LV_IMG_DECLARE(bt18);
+LV_IMG_DECLARE(altrune);
 LV_IMG_DECLARE(open);
 LV_IMG_DECLARE(offline);
 LV_IMG_DECLARE(offline_selected);
@@ -143,33 +144,12 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
-
-    // Fill background
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
+    lv_canvas_draw_img(canvas, 0, (CANVAS_SIZE - 63) / 2, &altrune, &img_dsc);
 
-    int y = (CANVAS_SIZE - 12) / 2;
-
-    for (int i = 0; i < NICEVIEW_PROFILE_COUNT; i++) {
-        bool selected = (i == state->active_profile_index);
-        bool connected = state->profiles_connected[i];
-        bool bonded = state->profiles_bonded[i];
-
-        const lv_img_dsc_t *img;
-        if (!bonded) {
-            img = &open;
-        } else if (connected) {
-            img = selected ? &online_selected : &online;
-        } else {
-            img = selected ? &offline_selected : &offline;
-        }
-
-        lv_canvas_draw_img(canvas, 2 + i * 13, y, img, &img_dsc);
-    }
-
-    // Rotate canvas
     rotate_canvas(canvas, cbuf);
 }
 
@@ -187,12 +167,31 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     // Draw layer
     if (state->layer_label == NULL || strlen(state->layer_label) == 0) {
         char text[10] = {};
-
         sprintf(text, "LAYER %i", state->layer_index);
-
-        lv_canvas_draw_text(canvas, 0, 5, 68, &label_dsc, text);
+        lv_canvas_draw_text(canvas, 0, 2, 68, &label_dsc, text);
     } else {
-        lv_canvas_draw_text(canvas, 0, 5, 68, &label_dsc, state->layer_label);
+        lv_canvas_draw_text(canvas, 0, 2, 68, &label_dsc, state->layer_label);
+    }
+
+    // Draw profiles row below layer
+    lv_draw_img_dsc_t img_dsc;
+    lv_draw_img_dsc_init(&img_dsc);
+
+    for (int i = 0; i < NICEVIEW_PROFILE_COUNT; i++) {
+        bool selected = (i == state->active_profile_index);
+        bool connected = state->profiles_connected[i];
+        bool bonded = state->profiles_bonded[i];
+
+        const lv_img_dsc_t *img;
+        if (!bonded) {
+            img = &open;
+        } else if (connected) {
+            img = selected ? &online_selected : &online;
+        } else {
+            img = selected ? &offline_selected : &offline;
+        }
+
+        lv_canvas_draw_img(canvas, 2 + i * 13, 18, img, &img_dsc);
     }
 
     // Rotate canvas
@@ -246,7 +245,7 @@ static void set_output_status(struct zmk_widget_status *widget,
     }
 
     draw_top(widget->obj, widget->cbuf, &widget->state);
-    draw_middle(widget->obj, widget->cbuf2, &widget->state);
+    draw_bottom(widget->obj, widget->cbuf3, &widget->state);
 }
 
 static void output_status_update_cb(struct output_status_state state) {
@@ -334,10 +333,11 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_align(middle, LV_ALIGN_TOP_LEFT, 24, 0);
     lv_canvas_set_buffer(middle, widget->cbuf2, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
     lv_obj_t *bottom = lv_canvas_create(widget->obj);
-    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, -44, 0);
+    lv_obj_align(bottom, LV_ALIGN_TOP_LEFT, -36, 0);
     lv_canvas_set_buffer(bottom, widget->cbuf3, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
 
     sys_slist_append(&widgets, &widget->node);
+    draw_middle(widget->obj, widget->cbuf2, &widget->state);
     widget_battery_status_init();
     widget_output_status_init();
     widget_layer_status_init();
