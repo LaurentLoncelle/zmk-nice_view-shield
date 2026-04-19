@@ -27,6 +27,11 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/wpm.h>
 
 LV_IMG_DECLARE(bt18);
+LV_IMG_DECLARE(open);
+LV_IMG_DECLARE(offline);
+LV_IMG_DECLARE(offline_selected);
+LV_IMG_DECLARE(online);
+LV_IMG_DECLARE(online_selected);
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
@@ -138,49 +143,30 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
-    lv_draw_rect_dsc_t rect_white_dsc;
-    init_rect_dsc(&rect_white_dsc, LVGL_FOREGROUND);
-    lv_draw_arc_dsc_t arc_dsc;
-    init_arc_dsc(&arc_dsc, LVGL_FOREGROUND, 2);
-    lv_draw_arc_dsc_t arc_dsc_filled;
-    init_arc_dsc(&arc_dsc_filled, LVGL_FOREGROUND, 9);
-    lv_draw_label_dsc_t label_dsc;
-    init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
-    lv_draw_label_dsc_t label_dsc_black;
-    init_label_dsc(&label_dsc_black, LVGL_BACKGROUND, &lv_font_montserrat_18, LV_TEXT_ALIGN_CENTER);
 
     // Fill background
     lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
 
-    // Draw circles
-    int circle_offsets[NICEVIEW_PROFILE_COUNT][2] = {
-        {13, 13}, {55, 13}, {34, 34}, {13, 55}, {55, 55},
-    };
+    lv_draw_img_dsc_t img_dsc;
+    lv_draw_img_dsc_init(&img_dsc);
+
+    int y = (CANVAS_SIZE - 12) / 2;
 
     for (int i = 0; i < NICEVIEW_PROFILE_COUNT; i++) {
-        bool selected = i == state->active_profile_index;
+        bool selected = (i == state->active_profile_index);
+        bool connected = state->profiles_connected[i];
+        bool bonded = state->profiles_bonded[i];
 
-        if (state->profiles_connected[i]) {
-            lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 13, 0, 360,
-                               &arc_dsc);
-        } else if (state->profiles_bonded[i]) {
-            const int segments = 8;
-            const int gap = 20;
-            for (int j = 0; j < segments; ++j)
-                lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 13,
-                                   360. / segments * j + gap / 2.0,
-                                   360. / segments * (j + 1) - gap / 2.0, &arc_dsc);
+        const lv_img_dsc_t *img;
+        if (!bonded) {
+            img = &open;
+        } else if (connected) {
+            img = selected ? &online_selected : &online;
+        } else {
+            img = selected ? &offline_selected : &offline;
         }
 
-        if (selected) {
-            lv_canvas_draw_arc(canvas, circle_offsets[i][0], circle_offsets[i][1], 9, 0, 359,
-                               &arc_dsc_filled);
-        }
-
-        char label[2];
-        snprintf(label, sizeof(label), "%d", i + 1);
-        lv_canvas_draw_text(canvas, circle_offsets[i][0] - 8, circle_offsets[i][1] - 10, 16,
-                            (selected ? &label_dsc_black : &label_dsc), label);
+        lv_canvas_draw_img(canvas, 2 + i * 13, y, img, &img_dsc);
     }
 
     // Rotate canvas
