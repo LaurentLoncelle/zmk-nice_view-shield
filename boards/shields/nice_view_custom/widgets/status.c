@@ -148,7 +148,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
 
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
-    lv_canvas_draw_img(canvas, 0, (CANVAS_SIZE - 63) / 2, &altrune, &img_dsc);
+    lv_canvas_draw_img(canvas, 0, (63 - 58) / 2, &altrune, &img_dsc);
 
     rotate_canvas(canvas, cbuf);
 }
