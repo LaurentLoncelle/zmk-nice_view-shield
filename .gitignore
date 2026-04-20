@@ -1,0 +1,57 @@
+# Built artifacts
+build/
+_build/
+cmake/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+*.o
+*.a
+*.so
+*.lib
+*.bin
+*.hex
+*.uf2
+*.bin
+*.elf
+
+# ZMK / Zephyr build outputs
+zephyr/.config.pre
+zephyr/include/generated/
+zephyr/include/zephyr/
+zephyr/misc/
+zephyr/samples/
+zephyr/subdirs/
+zephyr/scripts/
+zephyr/snippets/
+zephyr/usr/
+zephyr/.kconfig/
+zephyr/.kconfig.db
+zephyr/.build/
+zephyr/.config
+zephyr/boards/
+zephyr/dts/
+zephyr/lib/
+zephyr/subsys/
+zephyr/soc/
+zephyr/drivers/
+zephyr/include/generated
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Generated images
+*.png
