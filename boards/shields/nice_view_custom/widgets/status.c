@@ -136,7 +136,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
     lv_canvas_draw_line(canvas, points, 10, &line_dsc);
 
     // Rotate canvas
-    rotate_canvas(canvas, cbuf);
+    rotate_canvas(canvas, cbuf, CANVAS_SIZE, CANVAS_SIZE);
 }
 
 static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
@@ -150,7 +150,7 @@ static void draw_middle(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     lv_draw_img_dsc_init(&img_dsc);
     lv_canvas_draw_img(canvas, 0, 0, &altrune, &img_dsc);
 
-    rotate_canvas(canvas, cbuf);
+    rotate_canvas(canvas, cbuf, CANVAS_SIZE, CANVAS_SIZE);
 }
 
 static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
@@ -195,7 +195,7 @@ static void draw_bottom(lv_obj_t *widget, lv_color_t cbuf[], const struct status
     }
 
     // Rotate canvas
-    rotate_canvas(canvas, cbuf);
+    rotate_canvas(canvas, cbuf, CANVAS_SIZE, CANVAS_SIZE);
 }
 
 static void set_battery_status(struct zmk_widget_status *widget,

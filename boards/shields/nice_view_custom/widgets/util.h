@@ -11,6 +11,9 @@
 #define NICEVIEW_PROFILE_COUNT 5
 
 #define CANVAS_SIZE 68
+#define CANVAS_MAX_W 160
+#define CANVAS_MAX_H 68
+#define TOP_CANVAS_HEIGHT 20
 
 #define LVGL_BACKGROUND                                                                            \
     IS_ENABLED(CONFIG_NICE_VIEW_WIDGET_INVERTED) ? lv_color_black() : lv_color_white()
@@ -42,7 +45,7 @@ struct battery_status_state {
 #endif
 };
 
-void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]);
+void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[], uint16_t w, uint16_t h);
 void draw_battery(lv_obj_t *canvas, const struct status_state *state);
 void init_label_dsc(lv_draw_label_dsc_t *label_dsc, lv_color_t color, const lv_font_t *font,
                     lv_text_align_t align);

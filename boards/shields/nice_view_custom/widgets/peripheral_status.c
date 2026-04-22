@@ -61,13 +61,16 @@ struct peripheral_status_state {
 static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
 
+    // Reconfigure canvas for drawing (68×20 pre-rotation)
+    lv_canvas_set_buffer(canvas, cbuf, CANVAS_SIZE, TOP_CANVAS_HEIGHT, LV_IMG_CF_TRUE_COLOR);
+
     lv_draw_label_dsc_t label_dsc;
     init_label_dsc(&label_dsc, LVGL_FOREGROUND, &lv_font_montserrat_16, LV_TEXT_ALIGN_RIGHT);
     lv_draw_rect_dsc_t rect_black_dsc;
     init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
 
     // Fill background
-    lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE, &rect_black_dsc);
+    lv_canvas_draw_rect(canvas, 0, 0, CANVAS_SIZE, TOP_CANVAS_HEIGHT, &rect_black_dsc);
 
     // Draw battery
     draw_battery(canvas, state);
@@ -81,8 +84,11 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
         lv_canvas_draw_text(canvas, 0, 0, CANVAS_SIZE, &label_dsc, LV_SYMBOL_CLOSE);
     }
 
-    // Rotate canvas
-    rotate_canvas(canvas, cbuf);
+    // Rotate canvas: reconfigures canvas to 20×68 (TOP_CANVAS_HEIGHT × CANVAS_SIZE)
+    rotate_canvas(canvas, cbuf, CANVAS_SIZE, TOP_CANVAS_HEIGHT);
+
+    // Re-align after canvas was resized by rotation
+    lv_obj_align(canvas, LV_ALIGN_TOP_RIGHT, 0, 0);
 }
 
 static void set_battery_status(struct zmk_widget_status *widget,
@@ -143,7 +149,7 @@ int zmk_widget_status_init(struct zmk_widget_status *widget, lv_obj_t *parent) {
     lv_obj_set_size(widget->obj, 160, 68);
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, CANVAS_SIZE, LV_IMG_CF_TRUE_COLOR);
+    lv_canvas_set_buffer(top, widget->cbuf, CANVAS_SIZE, TOP_CANVAS_HEIGHT, LV_IMG_CF_TRUE_COLOR);
 
     lv_obj_t *art = lv_img_create(widget->obj);
     uint32_t idx = sys_rand32_get() % ARRAY_SIZE(art_images);
